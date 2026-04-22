@@ -23,7 +23,7 @@ for IMG_FILE in inputs/*.${params.image_format}; do
     echo "\$(date) Converting \$IMG_FILE"
     LOG_TXT="\${IMG_FILE#inputs/}.log.txt"
     QuPath script \
-        --args \$IMG_FILE \
+        --args "\$IMG_FILE" \
         --args "\$PWD" \
         --args "${params.compression}" \
         --args "${params.image_format}" \
@@ -56,8 +56,8 @@ for IMG_FILE in inputs/*.${params.image_format}; do
     echo "\$(date) Converting \$IMG_FILE (Output Prefix: \$OUTPUT_PREFIX)"
     LOG_TXT="\${OUTPUT_PREFIX}.log.txt"
     QuPath convert-ome \
-             \$IMG_FILE \
-             \$OUTPUT_PREFIX \
+             "\$IMG_FILE" \
+             "\$OUTPUT_PREFIX" \
              --pyramid-scale=${params.pyramid_scale} \
              --tile-size=${params.tile_size} \
              --compression=${params.compression} \
