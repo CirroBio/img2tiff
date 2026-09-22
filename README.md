@@ -16,7 +16,7 @@ Parameters:
 | `input_folder` | — | Folder holding the images to convert. Searched recursively. |
 | `image_format` | `vsi` | File suffix to convert. |
 | `output` | — | Folder where results are published. |
-| `compression` | `JPEG` | `JPEG` or `ZLIB`. |
+| `compression` | `JPEG` | Any QuPath `CompressionType`: `JPEG`, `ZLIB`, `LZW`, `J2K`, `J2K_LOSSY`, `UNCOMPRESSED`, `DEFAULT`. |
 | `pyramid_scale` | `2` | Downsample factor between pyramid levels. |
 | `tile_size` | `1024` | Tile height and width. |
 | `skip_existing` | `false` | Skip images whose OME-TIFF is already in `output`. |
@@ -52,10 +52,15 @@ That is what to measure a large cohort against before committing to it.
 ### Choosing a compression
 
 `JPEG` is the default. Images from brightfield slide scanners — SVS in particular —
-already hold lossy JPEG tiles written by the scanner, so `ZLIB` re-encodes them
-losslessly and inflates the output substantially without recovering any fidelity that
-was lost before the file was written. Use `ZLIB` for images which were never lossily
-compressed, such as fluorescence acquisitions.
+already hold lossy JPEG tiles written by the scanner, so a lossless codec re-encodes
+them and inflates the output substantially without recovering any fidelity that was
+lost before the file was written. Use a lossless option — `ZLIB`, `LZW`, `J2K`,
+`UNCOMPRESSED` — for images which were never lossily compressed, such as fluorescence
+acquisitions.
+
+Two of them are conditional on the image: `JPEG` needs an RGB or 8-bit image, and
+`J2K`/`J2K_LOSSY` need 8- or 16-bit. QuPath refuses the conversion rather than writing
+something wrong. `DEFAULT` lets it choose from the image itself.
 
 ### Failures
 
