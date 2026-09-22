@@ -51,7 +51,11 @@ def writeOmePyramid(ImageServer server, String outputPath, OMEPyramidWriter.Comp
         writer.writePyramid(outputPath)
         println "OME Pyramid TIFF written to: ${outputPath}"
     } catch (Exception e) {
+        // Must not be swallowed: the caller stops iterating series on
+        // IllegalArgumentException, so a write failure reported only on stdout would
+        // leave the series missing and the conversion looking successful.
         println "Error writing OME Pyramid TIFF: ${e.message}"
+        throw new RuntimeException("Failed to write ${outputPath}", e)
     }
 }
 
