@@ -51,7 +51,11 @@ def writeOmePyramid(ImageServer server, String outputPath, OMEPyramidWriter.Comp
         writer.writePyramid(outputPath)
         println "OME Pyramid TIFF written to: ${outputPath}"
     } catch (Exception e) {
+        // Must not be swallowed: the caller stops iterating series on
+        // IllegalArgumentException, so a write failure reported only on stdout would
+        // leave the series missing and the conversion looking successful.
         println "Error writing OME Pyramid TIFF: ${e.message}"
+        throw new RuntimeException("Failed to write ${outputPath}", e)
     }
 }
 
@@ -88,16 +92,16 @@ def convert(String[] args) {
     String outputFolder = args[1]
 
     if (args.size() >= 3) {
-	switch(args[2]) {
-	case "JPEG":
-	compression = OMEPyramidWriter.CompressionType.JPEG
-	break
-	case "ZLIB":
-	compression = OMEPyramidWriter.CompressionType.ZLIB
-	break
-	default:
-        throw new IllegalArgumentException("Compression must be either JPEG or ZLIB")
-	}
+        // Accept anything OMEPyramidWriter does, so this path offers the same
+        // choices as the convert-ome CLI rather than a subset of them.
+        try {
+            compression = OMEPyramidWriter.CompressionType.valueOf(args[2])
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                "Unknown compression '${args[2]}'. Valid values: " +
+                OMEPyramidWriter.CompressionType.values().join(", ")
+            )
+        }
     }
 
     // The user may optionally specify the file extension (e.g. vsi, svs, scn)
