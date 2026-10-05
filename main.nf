@@ -22,8 +22,9 @@ def findImages() {
     def input_folder = file(params.input_folder, type: 'dir', checkIfExists: true)
 
     // '**' crosses directory boundaries, so slides nested under the input folder are
-    // matched as well as slides sitting directly in it.
-    def images = files("${input_folder}/**.${params.image_format}")
+    // matched as well as slides sitting directly in it. toUriString keeps the s3:// scheme,
+    // which plain interpolation of a cloud Path drops, turning the glob into a local one.
+    def images = files("${input_folder.toUriString()}/**.${params.image_format}")
 
     if (images.isEmpty()) {
         def present = input_folder.list().sort()
