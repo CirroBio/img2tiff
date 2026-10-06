@@ -41,7 +41,8 @@ series as a separate OME-TIFF. Everything else goes through QuPath's `convert-om
 CLI.
 
 Each image is one task. On a cluster or in the cloud they run in parallel, each
-staging only its own image, and `publishDir` writes each result as it completes — so a
+staging only its own image (for `vsi`, together with the `_<image>_` folder of `.ets`
+files beside it, which holds the scan itself), and `publishDir` writes each result as it completes — so a
 run which is interrupted keeps everything converted up to that point, and `-resume`
 picks up the rest.
 
@@ -68,7 +69,8 @@ QuPath returns 0 even when it cannot read an image: it logs the exception and ca
 on. Success is therefore asserted on the output actually written, never on the exit
 status. An image which produces nothing fails its own task and names itself in the
 error; the rest of the cohort is unaffected, and what had already converted stays
-published.
+published. A `vsi` whose `.ets` files are missing also fails: QuPath can still open it,
+but only its label and macro images, so the log is checked for the warning instead.
 
 Out-of-memory and reclaimed spot hosts are retried with doubled memory. Anything else
 is a real conversion failure and is left loud.

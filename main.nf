@@ -65,6 +65,25 @@ def findImages() {
     return images
 }
 
+// A .vsi holds only the label and macro images; the scan itself is in .ets files under a
+// sibling folder named _<stem>_. A task stages only its declared inputs, so that folder
+// has to travel with the image or Bio-Formats quietly serves the macro image alone.
+// Pairs each image with its companion folder, or [] when there is none to stage.
+def withCompanions(images) {
+    if (params.image_format.toLowerCase() != 'vsi') {
+        return images.collect { [it, []] }
+    }
+    // One listing per parent folder rather than a stat per image, as in findImages.
+    def siblings = images.collect { it.parent }.unique().collectEntries { dir -> [dir, dir.list() as Set] }
+    return images.collect { image ->
+        // A String, not a GString: Set.contains compares by equals, which a GString fails.
+        def companion = '_' + outputName(image.name) + '_'
+        siblings[image.parent].contains(companion)
+            ? [image, image.resolveSibling(companion)]
+            : [image, []]
+    }
+}
+
 
 process convert_image_series {
     tag "${image.name}"
@@ -73,7 +92,7 @@ process convert_image_series {
                saveAs: { name -> name.endsWith(".timing.tsv") ? null : name }
 
     input:
-        path image
+        tuple path(image), path(companion)
         path script
 
     output:
@@ -107,6 +126,12 @@ if [ \${#WRITTEN[@]} -eq 0 ]; then
 fi
 if grep -q "Error writing OME Pyramid TIFF" "${stem}.log.txt"; then
     echo "FAILED: a series of ${image.name} could not be written; see ${stem}.log.txt" >&2
+    exit 1
+fi
+# Without its .ets files a .vsi still opens -- Bio-Formats only warns -- and the macro
+# image gets written in place of the scan, so the absence is caught here.
+if grep -q "Missing expected .ets files" "${stem}.log.txt"; then
+    echo "FAILED: the .ets files holding the scan of ${image.name} were not found; expected them under _${stem}_ beside it; see ${stem}.log.txt" >&2
     exit 1
 fi
 
@@ -171,14 +196,14 @@ echo "\$(date -u +%FT%TZ) Done in \${ELAPSED}s"
 
 
 workflow {
-    images = Channel.fromList(findImages())
+    images = findImages()
 
     if ( params.image_format in MULTI_SERIES_FORMATS ) {
         script = file("$projectDir/img2tiff_headless.groovy", checkIfExists: true)
-        convert_image_series(images, script)
+        convert_image_series(Channel.fromList(withCompanions(images)), script)
         timing = convert_image_series.out.timing
     } else {
-        convert_image(images)
+        convert_image(Channel.fromList(images))
         timing = convert_image.out.timing
     }
 
